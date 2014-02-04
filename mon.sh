@@ -90,6 +90,14 @@ mon_run_once() {
 }
 
 mon_status() {
+  stat "${_MON_PID_FILE}" > /dev/null 2> /dev/null;
+
+  if [ ! $? = 0 ]; then
+    echo "Couldn't find pid file \`${_MON_PID_FILE}'";
+
+    return 1;
+  fi;
+
   local _MON_PID=$(cat "${_MON_PID_FILE}");
 
   ps -p "${_MON_PID}" > /dev/null;
