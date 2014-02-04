@@ -42,6 +42,10 @@ EOF
 }
 
 mon_run() {
+  if [ ! "${_MON_OWN_PID_FILE}" = "" ]; then
+    echo $$ > "${_MON_OWN_PID_FILE}";
+  fi;
+
   while true; do
     mon_run_once $@;
 
