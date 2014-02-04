@@ -14,6 +14,8 @@ _MON_RESTART_TRIES="10";
 _MON_ON_RESTART="echo restarting";
 _MON_ON_ERROR="echo there was an error";
 
+_MON_RESTART_COUNT=0
+
 mon_version() {
   echo "${_MON_VERSION}";
 }
@@ -47,18 +49,22 @@ mon_run() {
   fi;
 
   while true; do
+    : $(( _MON_RESTART_COUNT += 1 ));
+
+    if [ ${_MON_RESTART_TRIES} -gt 0 -a ${_MON_RESTART_COUNT} -gt ${_MON_RESTART_TRIES} ]; then
+      if [ ! "${_MON_ON_ERROR}" = "" ]; then
+        eval sh -c "\"${_MON_ON_ERROR}\"";
+      fi;
+
+      return 1;
+    fi;
+
     mon_run_once $@;
 
     local _MON_RC=$?;
 
-    if [ ${_MON_RC} = 0 ]; then
-      if [ ! "${_MON_ON_RESTART}" = "" ]; then
-        eval sh -c "\"${_MON_ON_RESTART}\"";
-      fi;
-    else
-      if [ ! "${_MON_ON_ERROR}" = "" ]; then
-        eval sh -c "\"${_MON_ON_ERROR}\"";
-      fi;
+    if [ ! "${_MON_ON_RESTART}" = "" ]; then
+      eval sh -c "\"${_MON_ON_RESTART}\"";
     fi;
 
     sleep ${_MON_RESTART_DELAY};
