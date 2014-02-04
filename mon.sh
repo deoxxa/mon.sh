@@ -95,11 +95,9 @@ while [ $# -ne 0 ]; do
   case "${_MON_ARG}" in
     -h|--help)
       _MON_ACTION="help";
-      shift;
       ;;
     -V|--version)
       _MON_ACTION="version";
-      shift;
       ;;
     -l|--log)
       _MON_LOG_FILE="${2}";
@@ -111,7 +109,6 @@ while [ $# -ne 0 ]; do
       ;;
     -S|--status)
       _MON_ACTION="status";
-      shift;
       ;;
     -p|--pidfile)
       _MON_PID_FILE="${2}";
