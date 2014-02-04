@@ -89,6 +89,22 @@ mon_run_once() {
   return $?;
 }
 
+mon_status() {
+  local _MON_PID=$(cat "${_MON_PID_FILE}");
+
+  ps -p "${_MON_PID}" > /dev/null;
+
+  local _MON_RC=$?;
+
+  if [ $_MON_RC = 0 ]; then
+    echo "${_MON_PID} : alive"
+  else
+    echo "${_MON_PID} : dead";
+  fi;
+
+  return ${_MON_RC};
+}
+
 while [ $# -ne 0 ]; do
   _MON_ARG="${1}";
 
