@@ -76,7 +76,15 @@ mon_run_once() {
     _MON_CMDLINE="${_MON_CMDLINE} >> ${_MON_LOG_FILE}";
   fi;
 
-  eval ${_MON_CMDLINE};
+  eval ${_MON_CMDLINE} &
+
+  if [ ! "${_MON_PID_FILE}" = "" ]; then
+    echo $! > "${_MON_PID_FILE}";
+  fi;
+
+  echo $! from $$;
+
+  wait $!;
 
   return $?;
 }
