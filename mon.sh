@@ -15,6 +15,8 @@ _MON_RESTART_WINDOW="60";
 _MON_ON_RESTART="";
 _MON_ON_ERROR="";
 
+_MON_PROGRAM_PID="";
+
 # swiped from http://www.etalabs.net/sh_tricks.html
 quote () {
   printf %s "$1" | sed "s/'/'\\\\''/g; s/^/'/; s/\$/'/";
@@ -162,21 +164,9 @@ mon_run() {
   fi;
 
   while true; do
-    if [ ! $( dlist_length _MON_RESTARTS ) -lt ${_MON_RESTART_ATTEMPTS} ]; then
-      if [ ! "${_MON_ON_ERROR}" = "" ]; then
-        eval sh -c "$( quote "${_MON_ON_ERROR}" )";
-      fi;
-
-      return 1;
-    fi;
-
     mon_run_once $@;
 
     local _MON_RC=$?;
-
-    if [ ! "${_MON_ON_RESTART}" = "" ]; then
-      eval sh -c "$( quote "${_MON_ON_RESTART}" )";
-    fi;
 
     dlist_push _MON_RESTARTS $(date +%s);
 
@@ -191,6 +181,18 @@ mon_run() {
 
       dlist_shift _MON_RESTARTS;
     done;
+
+    if [ ! "${_MON_ON_RESTART}" = "" ]; then
+      eval sh -c "$( quote "${_MON_ON_RESTART} ${_MON_PROGRAM_PID}" )";
+    fi;
+
+    if [ ! $( dlist_length _MON_RESTARTS ) -lt ${_MON_RESTART_ATTEMPTS} ]; then
+      if [ ! "${_MON_ON_ERROR}" = "" ]; then
+        eval sh -c "$( quote "${_MON_ON_ERROR}  ${_MON_PROGRAM_PID}" )";
+      fi;
+
+      return 1;
+    fi;
 
     sleep ${_MON_RESTART_DELAY};
   done;
@@ -209,8 +211,10 @@ mon_run_once() {
 
   eval ${_MON_CMDLINE} &
 
+  _MON_PROGRAM_PID=$!;
+
   if [ ! "${_MON_PID_FILE}" = "" ]; then
-    printf %s $! > "${_MON_PID_FILE}";
+    printf %s ${_MON_PROGRAM_PID} > "${_MON_PID_FILE}";
   fi;
 
   wait $!;
