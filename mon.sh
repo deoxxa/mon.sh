@@ -10,11 +10,72 @@ _MON_LOG_FILE="mon.log";
 _MON_PID_FILE="";
 _MON_OWN_PID_FILE="";
 _MON_RESTART_DELAY="1";
-_MON_RESTART_TRIES="10";
-_MON_ON_RESTART="echo restarting";
-_MON_ON_ERROR="echo there was an error";
+_MON_RESTART_ATTEMPTS="10";
+_MON_RESTART_WINDOW="60";
+_MON_ON_RESTART="";
+_MON_ON_ERROR="";
 
-_MON_RESTART_COUNT=0
+###
+# extracted from dlist.sh <https://github.com/deoxxa/dlist.sh>
+###
+
+dlist_init() {
+  local dlist_name=${1}
+
+  eval _DLIST_${dlist_name}_length=0
+}
+
+dlist_get() {
+  local dlist_name=${1}
+  local dlist_offset=${2}
+
+  eval echo \$_DLIST_${dlist_name}_${dlist_offset}
+}
+
+dlist_set() {
+  local dlist_name=${1}
+  local dlist_offset=${2}
+  local dlist_value=${3}
+
+  eval _DLIST_${dlist_name}_${dlist_offset}=\${dlist_value}
+}
+
+dlist_length() {
+  local dlist_name=${1}
+
+  eval echo \$_DLIST_${dlist_name}_length
+}
+
+dlist_push() {
+  local dlist_name=${1}
+  local dlist_value=${2}
+
+  local n=$( dlist_length ${dlist_name} )
+
+  : $(( _DLIST_${dlist_name}_length += 1 ))
+
+  dlist_set ${dlist_name} ${n} ${dlist_value}
+}
+
+dlist_shift() {
+  local dlist_name=${1}
+
+  local n=$( dlist_length ${dlist_name} )
+
+  for i in $( seq 0 $(( n - 2 )) ); do
+    dlist_set ${dlist_name} ${i} $( dlist_get ${dlist_name} $(( i + 1 )) )
+  done;
+
+  eval unset _DLIST_${dlist_name}_$(( n - 1 ))
+
+  : $(( _DLIST_${dlist_name}_length -= 1 ))
+}
+
+###
+# end of dlist implementation
+###
+
+dlist_init _MON_RESTARTS
 
 mon_version() {
   echo "${_MON_VERSION}";
@@ -36,7 +97,8 @@ Options:
   -m, --mon-pidfile <path>      write mon(1) pid to <path>
   -P, --prefix <str>            add a log prefix
   -d, --daemonize               daemonize the program
-  -a, --attempts <n>            retry attempts within 60 seconds [10]
+  -w, --window <n>              retry attempt tracking window [60]
+  -a, --attempts <n>            retry attempts within $WINDOW seconds [10]
   -R, --on-restart <cmd>        execute <cmd> on restarts
   -E, --on-error <cmd>          execute <cmd> on error
 
@@ -49,9 +111,7 @@ mon_run() {
   fi;
 
   while true; do
-    : $(( _MON_RESTART_COUNT += 1 ));
-
-    if [ ${_MON_RESTART_TRIES} -gt 0 -a ${_MON_RESTART_COUNT} -gt ${_MON_RESTART_TRIES} ]; then
+    if [ ! $( dlist_length _MON_RESTARTS ) -lt ${_MON_RESTART_ATTEMPTS} ]; then
       if [ ! "${_MON_ON_ERROR}" = "" ]; then
         eval sh -c "\"${_MON_ON_ERROR}\"";
       fi;
@@ -66,6 +126,20 @@ mon_run() {
     if [ ! "${_MON_ON_RESTART}" = "" ]; then
       eval sh -c "\"${_MON_ON_RESTART}\"";
     fi;
+
+    dlist_push _MON_RESTARTS $(date +%s);
+
+    while true; do
+      if [ $( dlist_length _MON_RESTARTS ) -eq 0 ]; then
+        break;
+      fi;
+
+      if [ $( dlist_get _MON_RESTARTS 0 ) -gt $(( $( date +%s ) - ${_MON_RESTART_WINDOW} )) ]; then
+        break;
+      fi;
+
+      dlist_shift _MON_RESTARTS;
+    done;
 
     sleep ${_MON_RESTART_DELAY};
   done;
@@ -88,9 +162,11 @@ mon_run_once() {
     echo $! > "${_MON_PID_FILE}";
   fi;
 
-  echo $! from $$;
-
   wait $!;
+
+  if [ ! "${_MON_PID_FILE}" = "" ]; then
+    rm -f "${_MON_PID_FILE}";
+  fi;
 
   return $?;
 }
@@ -111,7 +187,7 @@ mon_status() {
   local _MON_RC=$?;
 
   if [ $_MON_RC = 0 ]; then
-    echo "${_MON_PID} : alive"
+    echo "${_MON_PID} : alive";
   else
     echo "${_MON_PID} : dead";
   fi;
@@ -154,6 +230,10 @@ while [ $# -ne 0 ]; do
       ;;
     -d|--daemonize)
       _MON_DAEMON="yes";
+      ;;
+    -w|--window)
+      _MON_RESTART_WINDOW="${2}";
+      shift;
       ;;
     -a|--attempts)
       _MON_RESTART_ATTEMPTS="${2}";
