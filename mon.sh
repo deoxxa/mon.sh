@@ -111,6 +111,52 @@ EOF
 }
 
 mon_run() {
+  if [ "${_MON_DAEMON}" = "yes" ]; then
+    local _MON_CMDLINE=$( quote "${0}" );
+
+    if [ "${_MON_LOG_FILE}" = "" ]; then
+      _MON_LOG_FILE="mon.$$.log";
+    fi;
+
+    if [ ! "${_MON_LOG_FILE}" = "" ]; then
+      _MON_CMDLINE="${_MON_CMDLINE} --log $( quote "${_MON_LOG_FILE}" )";
+    fi;
+
+    if [ ! "${_MON_LOG_PREFIX}" = "" ]; then
+      _MON_CMDLINE="${_MON_CMDLINE} --prefix $( quote "${_MON_LOG_PREFIX}" )";
+    fi;
+
+    if [ ! "${_MON_PID_FILE}" = "" ]; then
+      _MON_CMDLINE="${_MON_CMDLINE} --pidfile $( quote "${_MON_PID_FILE}" )";
+    fi;
+
+    if [ ! "${_MON_OWN_PID_FILE}" = "" ]; then
+      _MON_CMDLINE="${_MON_CMDLINE} --mon-pidfile $( quote "${_MON_OWN_PID_FILE}" )";
+    fi;
+
+    if [ ! "${_MON_RESTART_WINDOW}" = "" ]; then
+      _MON_CMDLINE="${_MON_CMDLINE} --window $( quote "${_MON_RESTART_WINDOW}" )";
+    fi;
+
+    if [ ! "${_MON_RESTART_ATTEMPTS}" = "" ]; then
+      _MON_CMDLINE="${_MON_CMDLINE} --attempts $( quote "${_MON_RESTART_ATTEMPTS}" )";
+    fi;
+
+    if [ ! "${_MON_ON_RESTART}" = "" ]; then
+      _MON_CMDLINE="${_MON_CMDLINE} --on-restart $( quote "${_MON_ON_RESTART}" )";
+    fi;
+
+    if [ ! "${_MON_ON_ERROR}" = "" ]; then
+      _MON_CMDLINE="${_MON_CMDLINE} --on-error $( quote "${_MON_ON_ERROR}" )";
+    fi;
+
+    _MON_CMDLINE="${_MON_CMDLINE} $( quote "${*}" )";
+
+    eval "nohup ${_MON_CMDLINE} 1>/dev/null 2>/dev/null &"
+
+    return $?;
+  fi;
+
   if [ ! "${_MON_OWN_PID_FILE}" = "" ]; then
     echo $$ > "${_MON_OWN_PID_FILE}";
   fi;
