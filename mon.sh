@@ -15,6 +15,11 @@ _MON_RESTART_WINDOW="60";
 _MON_ON_RESTART="";
 _MON_ON_ERROR="";
 
+# swiped from http://www.etalabs.net/sh_tricks.html
+quote () {
+  printf %s "$1" | sed "s/'/'\\\\''/g; s/^/'/; s/\$/'/";
+}
+
 ###
 # extracted from dlist.sh <https://github.com/deoxxa/dlist.sh>
 ###
