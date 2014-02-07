@@ -25,45 +25,45 @@ quote () {
 ###
 
 dlist_init() {
-  local dlist_name=${1}
+  local dlist_name="${1}"
 
   eval _DLIST_${dlist_name}_length=0
 }
 
 dlist_get() {
-  local dlist_name=${1}
+  local dlist_name="${1}"
   local dlist_offset=${2}
 
-  eval echo \$_DLIST_${dlist_name}_${dlist_offset}
+  eval printf %s \"\$_DLIST_${dlist_name}_${dlist_offset}\"
 }
 
 dlist_set() {
-  local dlist_name=${1}
+  local dlist_name="${1}"
   local dlist_offset=${2}
-  local dlist_value=${3}
+  local dlist_value="${3}"
 
-  eval _DLIST_${dlist_name}_${dlist_offset}=\${dlist_value}
+  eval _DLIST_${dlist_name}_${dlist_offset}=\"\${dlist_value}\"
 }
 
 dlist_length() {
-  local dlist_name=${1}
+  local dlist_name="${1}"
 
-  eval echo \$_DLIST_${dlist_name}_length
+  eval printf %s \"\$_DLIST_${dlist_name}_length\"
 }
 
 dlist_push() {
-  local dlist_name=${1}
+  local dlist_name="${1}"
   local dlist_value=${2}
 
   local n=$( dlist_length ${dlist_name} )
 
   : $(( _DLIST_${dlist_name}_length += 1 ))
 
-  dlist_set ${dlist_name} ${n} ${dlist_value}
+  dlist_set "${dlist_name}" "${n}" "${dlist_value}"
 }
 
 dlist_shift() {
-  local dlist_name=${1}
+  local dlist_name="${1}"
 
   local n=$( dlist_length ${dlist_name} )
 
@@ -158,13 +158,13 @@ mon_run() {
   fi;
 
   if [ ! "${_MON_OWN_PID_FILE}" = "" ]; then
-    echo $$ > "${_MON_OWN_PID_FILE}";
+    printf %s $$ > "${_MON_OWN_PID_FILE}";
   fi;
 
   while true; do
     if [ ! $( dlist_length _MON_RESTARTS ) -lt ${_MON_RESTART_ATTEMPTS} ]; then
       if [ ! "${_MON_ON_ERROR}" = "" ]; then
-        eval sh -c "\"${_MON_ON_ERROR}\"";
+        eval sh -c "$( quote "${_MON_ON_ERROR}" )";
       fi;
 
       return 1;
@@ -175,7 +175,7 @@ mon_run() {
     local _MON_RC=$?;
 
     if [ ! "${_MON_ON_RESTART}" = "" ]; then
-      eval sh -c "\"${_MON_ON_RESTART}\"";
+      eval sh -c "$( quote "${_MON_ON_RESTART}" )";
     fi;
 
     dlist_push _MON_RESTARTS $(date +%s);
@@ -197,7 +197,7 @@ mon_run() {
 }
 
 mon_run_once() {
-  local _MON_CMDLINE="sh -c \"\${*}\"";
+  local _MON_CMDLINE="$( printf 'sh -c %s' "$( quote "${*}" )" )";
 
   if [ ! "${_MON_LOG_FILE}" = "" ]; then
     if [ ! "${_MON_LOG_PREFIX}" = "" ]; then
@@ -210,7 +210,7 @@ mon_run_once() {
   eval ${_MON_CMDLINE} &
 
   if [ ! "${_MON_PID_FILE}" = "" ]; then
-    echo $! > "${_MON_PID_FILE}";
+    printf %s $! > "${_MON_PID_FILE}";
   fi;
 
   wait $!;
@@ -247,7 +247,7 @@ mon_status() {
 }
 
 while [ $# -ne 0 ]; do
-  _MON_ARG="${1}";
+  _MON_ARG=${1};
 
   case "${_MON_ARG}" in
     -h|--help)
@@ -257,45 +257,45 @@ while [ $# -ne 0 ]; do
       _MON_ACTION="version";
       ;;
     -l|--log)
-      _MON_LOG_FILE="${2}";
+      _MON_LOG_FILE=${2};
       shift;
       ;;
     -s|--sleep)
-      _MON_RESTART_DELAY="${2}";
+      _MON_RESTART_DELAY=${2};
       shift;
       ;;
     -S|--status)
       _MON_ACTION="status";
       ;;
     -p|--pidfile)
-      _MON_PID_FILE="${2}";
+      _MON_PID_FILE=${2};
       shift;
       ;;
     -m|--mon-pidfile)
-      _MON_OWN_PID_FILE="${2}";
+      _MON_OWN_PID_FILE=${2};
       shift;
       ;;
     -P|--prefix)
-      _MON_LOG_PREFIX="${2}";
+      _MON_LOG_PREFIX=${2};
       shift;
       ;;
     -d|--daemonize)
       _MON_DAEMON="yes";
       ;;
     -w|--window)
-      _MON_RESTART_WINDOW="${2}";
+      _MON_RESTART_WINDOW=${2};
       shift;
       ;;
     -a|--attempts)
-      _MON_RESTART_ATTEMPTS="${2}";
+      _MON_RESTART_ATTEMPTS=${2};
       shift;
       ;;
     -R|--on-restart)
-      _MON_ON_RESTART="${2}";
+      _MON_ON_RESTART=${2};
       shift;
       ;;
     -E|--on-error)
-      _MON_ON_ERROR="${2}";
+      _MON_ON_ERROR=${2};
       shift;
       ;;
     --)
