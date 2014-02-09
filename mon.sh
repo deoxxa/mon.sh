@@ -258,9 +258,9 @@ mon_status() {
   fi;
 
   if [ $_MON_RC = 0 ]; then
-    echo "${_MON_PID} : alive";
+    printf '\033[90m%d\033[0m : \033[32malive\033[0m : uptime %s seconds\033[m\n' "${_MON_PID}" "${_MON_UPTIME}";
   else
-    echo "${_MON_PID} : dead";
+    printf '\033[90m%d\033[0m : \033[31mdead\033[0m\n' "${_MON_PID}";
   fi;
 
   return ${_MON_RC};
