@@ -241,6 +241,22 @@ mon_status() {
 
   local _MON_RC=$?;
 
+  local _MON_STARTED_AT="";
+
+  case $( uname -s ) in
+    Linux)
+      _MON_STARTED_AT=$(stat -c %Y "${_MON_PID_FILE}" );
+      ;;
+    Darwin)
+      _MON_STARTED_AT=$(stat -f %m "${_MON_PID_FILE}" );
+      ;;
+  esac;
+
+  local _MON_UPTIME="";
+  if [ ! "${_MON_STARTED_AT}" = "" ]; then
+    _MON_UPTIME=$(( $( date +%s ) - _MON_STARTED_AT ));
+  fi;
+
   if [ $_MON_RC = 0 ]; then
     echo "${_MON_PID} : alive";
   else
